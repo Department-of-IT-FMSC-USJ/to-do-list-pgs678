@@ -1,0 +1,137 @@
+using System;
+using System.Collections.Generic;
+
+enum TaskStatus { ToDo, InProgress, Completed }
+
+class UserTask
+{
+    public int ID { get; }
+    public DateTime DueDate { get; }
+    public TaskStatus Status { get; set; }
+
+    public UserTask(int id, DateTime dueDate)
+    {
+        ID = id;
+        DueDate = dueDate;
+        Status = TaskStatus.ToDo;
+    }
+}
+
+class TaskManager
+{
+    private LinkedList<UserTask> _toDoList = new();
+    private LinkedList<UserTask> _inProgressList = new();
+    private LinkedList<UserTask> _completedList = new();
+
+    public void AddTask(int id, DateTime dueDate)
+    {
+        // Check for duplicate ID
+        if (TaskExists(id))
+        {
+            Console.WriteLine($"Task with ID {id} already exists.");
+            return;
+        }
+
+        var newTask = new UserTask(id, dueDate);
+        var node = _toDoList.First;
+
+        while (node != null && node.Value.DueDate < dueDate)
+            node = node.Next;
+
+        if (node != null)
+            _toDoList.AddBefore(node, newTask);
+        else
+            _toDoList.AddLast(newTask);
+    }
+
+    public void MoveToInProgress(int id)
+    {
+        var task = FindAndRemoveTask(_toDoList, id);
+        if (task != null)
+        {
+            task.Status = TaskStatus.InProgress;
+            _inProgressList.AddFirst(task); // Stack behavior
+        }
+    }
+
+    public void MoveToCompleted(int id)
+    {
+        var task = FindAndRemoveTask(_inProgressList, id);
+        if (task != null)
+        {
+            task.Status = TaskStatus.Completed;
+            _completedList.AddLast(task); // Queue behavior
+        }
+    }
+
+    private UserTask FindAndRemoveTask(LinkedList<UserTask> list, int id)
+    {
+        var node = list.First;
+        while (node != null)
+        {
+            if (node.Value.ID == id)
+            {
+                var task = node.Value;
+                list.Remove(node);
+                return task;
+            }
+            node = node.Next;
+        }
+        Console.WriteLine($"Task with ID {id} not found in the specified list.");
+        return null;
+    }
+
+    private bool TaskExists(int id)
+    {
+        foreach (var task in _toDoList)
+            if (task.ID == id) return true;
+        foreach (var task in _inProgressList)
+            if (task.ID == id) return true;
+        foreach (var task in _completedList)
+            if (task.ID == id) return true;
+        return false;
+    }
+
+    public void DisplayTasks()
+    {
+        Console.WriteLine("\n--- Task Lists ---");
+        PrintList("To-Do", _toDoList);
+        PrintList("In-Progress", _inProgressList);
+        PrintList("Completed", _completedList);
+    }
+
+    private void PrintList(string title, LinkedList<UserTask> list)
+    {
+        Console.WriteLine($"\n{title}:");
+        if (list.Count == 0)
+        {
+            Console.WriteLine("  (No tasks)");
+            return;
+        }
+
+        foreach (var task in list)
+            Console.WriteLine($"  Task [{task.ID}] - {task.Status}, Due: {task.DueDate}");
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        var manager = new TaskManager();
+
+        manager.AddTask(1, DateTime.Now.AddDays(1));
+        manager.AddTask(2, DateTime.Now);
+        manager.AddTask(3, DateTime.Now.AddDays(2));
+
+        manager.DisplayTasks();
+
+        Console.WriteLine("Moving Task 2 to InProgress...");
+        manager.MoveToInProgress(2);
+        manager.DisplayTasks();
+
+        Console.WriteLine(Moving Task 2 to Completed...");
+        manager.MoveToCompleted(2);
+        manager.DisplayTasks();
+    }
+}
